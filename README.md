@@ -2,6 +2,8 @@
 
 Educational interactive web app for visualizing Mohr's circle and plane stress transformations.
 
+Live demo: https://angelosimone.github.io/interactive-mohrs-circle/
+
 ## Overview
 
 This app allows users to explore the relationship between a plane stress tensor, its rotated components, principal stresses, and the corresponding Mohr's circle representation.
@@ -27,7 +29,9 @@ See the [Wikipedia article on Mohr's circle](https://en.wikipedia.org/wiki/Mohr%
 
 ## Usage
 
-Open the web page (`index.html`) and enter the stress components:
+Open the [live web app](https://angelosimone.github.io/interactive-mohrs-circle/) or download `index.html` and open it locally in a browser.
+
+Enter the stress components:
 
 - σ<sub>xx</sub>
 - σ<sub>yy</sub>
@@ -37,7 +41,13 @@ Then click **Apply**.
 
 You can drag the red or green marker on Mohr's circle to rotate the stress element and inspect the transformed stress state.
 
-The file can also be downloaded and used offline.
+The app is fully client-side and can be used offline.
+
+## Repository contents
+
+- `index.html`: standalone HTML/CSS/JavaScript web app
+- `README.md`: project documentation
+- `LICENSE`: MIT License
 
 ## License
 
