@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Grafico interattivo della circonferenza di Mohr</title>
+  <meta name="description" content="Educational interactive web app for visualizing Mohr's circle and plane stress transformations.">
+  <meta name="author" content="Angelo Simone">
+  <meta name="license" content="MIT">
+  <style>
+    :root {
+      --bg: #f7f7f8;
+      --panel: #ffffff;
+      --border: #d8d8de;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --red: #c62828;
+      --green: #1b8a3d;
+      --blue: #2563eb;
+      --orange: #d97706;
+      --purple: #7c3aed;
+      --gray: #c9ccd3;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      width: 100%;
+      min-height: 100dvh;
+      min-height: -webkit-fill-available;
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.18;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .wrap {
+      width: min(100%, 100vw);
+      max-width: none;
+      min-width: 0;
+      min-height: 100dvh;
+      min-height: -webkit-fill-available;
+      margin: 0;
+      padding:
+        max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+      display: grid;
+      grid-template-rows: auto auto auto auto;
+      gap: 10px;
+    }
+
+    h1 {
+      font-size: 0.92rem;
+      margin: 0;
+      line-height: 1;
+      font-weight: 700;
+      color: #374151;
+    }
+
+    .intro,
+    .notes,
+    .footer {
+      display: none !important;
+    }
+
+    sub {
+      font-size: 0.72em;
+      line-height: 0;
+      vertical-align: baseline;
+      position: relative;
+      bottom: -0.28em;
+    }
+
+    .controls,
+    .panel,
+    .info-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .controls {
+      padding: 6px;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 6px;
+      align-items: end;
+      margin-bottom: 0;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.72rem;
+      margin-bottom: 3px;
+      font-weight: 700;
+      color: #374151;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.88rem;
+      background: #fff;
+      min-height: 34px;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 6px 8px;
+      min-height: 34px;
+      font-size: 0.83rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      width: 100%;
+    }
+
+    .primary {
+      background: #111827;
+      color: #fff;
+    }
+
+    .secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 0.86rem;
+      line-height: 1;
+    }
+
+    canvas {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid #ececf0;
+      touch-action: none;
+      min-height: 0;
+      object-fit: contain;
+    }
+
+    #mohrCanvas,
+    #elementCanvas {
+      aspect-ratio: 16 / 10;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 10px;
+      margin-top: 0;
+      font-size: 0.74rem;
+      color: var(--muted);
+      line-height: 1.05;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .legend-text {
+      display: inline-block;
+      line-height: 1.15;
+    }
+
+    .tensor-symbol {
+      font-weight: 700;
+    }
+
+    .legend sub {
+      font-size: 0.82em;
+      line-height: 0;
+      vertical-align: baseline;
+      position: relative;
+      bottom: -0.18em;
+    }
+
+    .dot,
+    .cross {
+      width: 11px;
+      height: 11px;
+      display: inline-block;
+      position: relative;
+      flex: 0 0 11px;
+    }
+
+    .dot {
+      border-radius: 50%;
+    }
+
+    .cross::before,
+    .cross::after {
+      content: "";
+      position: absolute;
+      left: 4.5px;
+      top: 0;
+      width: 2px;
+      height: 11px;
+      background: currentColor;
+    }
+
+    .cross::before {
+      transform: rotate(45deg);
+    }
+
+    .cross::after {
+      transform: rotate(-45deg);
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
+      gap: 6px;
+      align-items: stretch;
+    }
+
+    .info-card {
+      padding: 6px;
+      min-width: 0;
+    }
+
+    .info-card h3 {
+      margin: 0 0 4px;
+      font-size: 0.8rem;
+      line-height: 1;
+    }
+
+    .matrix {
+      border-collapse: collapse;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.84rem;
+    }
+
+    .matrix td {
+      padding: 3px 6px;
+      text-align: center;
+      min-width: 48px;
+    }
+
+    .matrix-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      max-width: 100%;
+    }
+
+    .label-block {
+      font-weight: 700;
+      white-space: nowrap;
+      font-size: 0.8rem;
+    }
+
+    .bracket {
+      font-size: 2rem;
+      line-height: 1;
+      color: #111827;
+      transform: translateY(-1px);
+    }
+
+    .red {
+      color: var(--red);
+    }
+
+    .green {
+      color: var(--green);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .metric {
+      border: 1px solid #ececf0;
+      border-radius: 8px;
+      padding: 6px;
+      background: #fafafa;
+      min-width: 0;
+    }
+
+    .metric .name {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-bottom: 2px;
+      white-space: nowrap;
+    }
+
+    .metric .value {
+      font-size: 0.86rem;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+      line-height: 1.05;
+    }
+
+
+    .instructions-box {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      padding: 8px 10px;
+      font-size: 0.76rem;
+      color: #374151;
+    }
+
+    .instructions-box h3 {
+      margin: 0 0 6px;
+      font-size: 0.8rem;
+      line-height: 1;
+    }
+
+    .instructions-box ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .instructions-box li {
+      margin: 3px 0;
+      line-height: 1.2;
+    }
+
+    .instructions-box code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.96em;
+      background: #f3f4f6;
+      padding: 0 3px;
+      border-radius: 4px;
+    }
+
+    .copyright {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--muted);
+      padding: 2px 4px 0;
+      letter-spacing: 0.01em;
+    }
+
+    @media (max-width: 1366px) {
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (hover: none) and (pointer: coarse) and (orientation: landscape) and (min-width: 900px) {
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        min-height: 100dvh;
+        overflow: hidden;
+      }
+
+      .wrap {
+        height: 100dvh;
+        min-height: 100dvh;
+        padding:
+          max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+        gap: 6px;
+        grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+        overflow: hidden;
+      }
+
+      h1,
+      .panel h2,
+      .info-card h3,
+      .instructions-box h3 {
+        line-height: 1;
+      }
+
+      h1 {
+        font-size: 0.86rem;
+      }
+
+      .controls {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 4px;
+        padding: 5px;
+      }
+
+      .field label {
+        font-size: 0.68rem;
+        margin-bottom: 2px;
+      }
+
+      .field input,
+      button {
+        min-height: 30px;
+        padding: 4px 6px;
+        font-size: 0.8rem;
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        min-height: 0;
+        align-items: stretch;
+      }
+
+      .panel {
+        padding: 5px;
+        gap: 3px;
+        min-height: 0;
+      }
+
+      .panel h2 {
+        font-size: 0.8rem;
+      }
+
+      .legend {
+        gap: 2px 8px;
+        font-size: 0.68rem;
+      }
+
+      .info-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 6px;
+      }
+
+      .info-card {
+        padding: 5px;
+      }
+
+      .matrix td {
+        min-width: 42px;
+        padding: 2px 5px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      .metric {
+        padding: 5px;
+      }
+
+      .metric .name {
+        font-size: 0.64rem;
+        margin-bottom: 1px;
+      }
+
+      .metric .value {
+        font-size: 0.8rem;
+      }
+
+      .instructions-box {
+        padding: 6px 8px;
+        font-size: 0.68rem;
+      }
+
+      .instructions-box ul {
+        padding-left: 16px;
+      }
+
+      .instructions-box li {
+        margin: 2px 0;
+        line-height: 1.12;
+      }
+
+      .copyright {
+        font-size: 0.64rem;
+        padding-top: 0;
+      }
+
+      #mohrCanvas,
+      #elementCanvas {
+        aspect-ratio: auto;
+        width: auto;
+        max-width: 100%;
+      }
+    }
+
+    @media (max-width: 1024px),
+    (hover: none) and (pointer: coarse) and (orientation: portrait) {
+      .wrap {
+        gap: 8px;
+      }
+
+      .controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #mohrCanvas,
+      #elementCanvas {
+        aspect-ratio: 4 / 3;
+      }
+    }
+
+    @media (max-width: 700px) {
+
+      .controls,
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .field input,
+      button {
+        font-size: 0.82rem;
+      }
+
+      .matrix td {
+        min-width: 44px;
+        padding: 3px 5px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>Grafico interattivo della circonferenza di Mohr</h1>
+
+    <div class="controls">
+      <div class="field">
+        <label for="sigma_xx">σ<sub>xx</sub></label>
+        <input id="sigma_xx" type="number" step="any" value="50">
+      </div>
+      <div class="field">
+        <label for="sigma_yy">σ<sub>yy</sub></label>
+        <input id="sigma_yy" type="number" step="any" value="-10">
+      </div>
+      <div class="field">
+        <label for="tau_xy">τ<sub>xy</sub></label>
+        <input id="tau_xy" type="number" step="any" value="40">
+      </div>
+      <button class="primary" id="applyBtn">Applica</button>
+      <button class="secondary" id="resetBtn">Reset</button>
+      <button class="secondary" id="defaultsBtn">Default</button>
+    </div>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>Circonferenza di Mohr</h2>
+        <canvas id="mohrCanvas" width="900" height="540" role="img"
+          aria-label="Grafico della circonferenza di Mohr nel piano sigma_n tau_n, con convenzione 3: tau_n positiva verso l'alto e positiva se il taglio induce rotazione oraria dell'elemento."></canvas>
+        <div class="legend">
+          <span class="legend-item"><span class="dot" style="background: var(--red);"></span><span
+              class="legend-text"><span class="tensor-symbol">t</span><sub>x</sub></span></span>
+          <span class="legend-item"><span class="dot" style="background: var(--green);"></span><span
+              class="legend-text"><span class="tensor-symbol">t</span><sub>y</sub></span></span>
+          <span class="legend-item"><span class="cross" style="color: var(--purple);"></span><span
+              class="legend-text">σ<sub>1</sub>, σ<sub>2</sub></span></span>
+          <span class="legend-item"><span class="cross" style="color: var(--orange);"></span><span
+              class="legend-text">τ<sub>max</sub>, τ<sub>min</sub></span></span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Piano fisico</h2>
+        <canvas id="elementCanvas" width="900" height="540" role="img"
+          aria-label="Rappresentazione sul piano fisico dello stato tensionale corrente e dell'elemento ruotato."></canvas>
+      </section>
+    </div>
+
+    <div class="info-grid">
+      <section class="info-card">
+        <h3>Tensore ruotato</h3>
+        <div class="matrix-wrap">
+          <div class="label-block">T<sub>rot</sub> =</div>
+          <div class="bracket">[</div>
+          <table class="matrix">
+            <tr>
+              <td class="red" id="m11">0.00</td>
+              <td class="green" id="m12">0.00</td>
+            </tr>
+            <tr>
+              <td class="red" id="m21">0.00</td>
+              <td class="green" id="m22">0.00</td>
+            </tr>
+          </table>
+          <div class="bracket">]</div>
+        </div>
+      </section>
+
+      <section class="info-card">
+        <h3>Valori principali</h3>
+        <div class="metrics">
+          <div class="metric">
+            <div class="name">σ<sub>1</sub></div>
+            <div class="value" id="sigma1">0.00</div>
+          </div>
+          <div class="metric">
+            <div class="name">σ<sub>2</sub></div>
+            <div class="value" id="sigma2">0.00</div>
+          </div>
+          <div class="metric">
+            <div class="name">θ fisico</div>
+            <div class="value" id="thetaDeg">0° 00′ 00″</div>
+          </div>
+          <div class="metric">
+            <div class="name">τ<sub>rot</sub></div>
+            <div class="value" id="tauRot">0.00</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="instructions-box" aria-label="Istruzioni originali">
+      <h3>Istruzioni</h3>
+      <ul>
+        <li>Per iniziare premi <code>r</code> o il tasto <code>Reset</code>.</li>
+        <li>Trascina il marcatore rosso o verde per modificare lo stato di sforzo.</li>
+        <li>La rotazione fisica θ mostra la rotazione minima rispetto alla
+          configurazione di riferimento.</li>
+        <li>Convenzione usata nel piano di Mohr (piano σ<sub>n</sub>-τ<sub>n</sub>): la tensione normale positiva
+          corrisponde a una tensione normale di trazione; la tensione tangenziale positiva corrisponde a una rotazione
+          oraria dell'elemento.</li>
+        <li>Premi <code>r</code> o il tasto <code>Reset</code> per tornare alla configurazione di riferimento (non
+          ruotata).</li>
+      </ul>
+    </section>
+
+    <div class="copyright">© 2026 Angelo Simone. Licensed under the MIT License.</div>
+  </div>
+
+  <script>
+    (() => {
+      const mohrCanvas = document.getElementById('mohrCanvas');
+      const elementCanvas = document.getElementById('elementCanvas');
+      const wrapEl = document.querySelector('.wrap');
+      const gridEl = document.querySelector('.grid');
+      const mohrPanel = mohrCanvas.closest('.panel');
+      const elementPanel = elementCanvas.closest('.panel');
+      const mohrCtx = mohrCanvas.getContext('2d');
+      const elemCtx = elementCanvas.getContext('2d');
+
+      const sigmaXXInput = document.getElementById('sigma_xx');
+      const sigmaYYInput = document.getElementById('sigma_yy');
+      const tauXYInput = document.getElementById('tau_xy');
+
+      const state = {
+        sigma_xx_input: 50,
+        sigma_yy_input: -10,
+        tau_xy_input: 40,
+        sigma_xx: 50,
+        sigma_yy: -10,
+        tau_xy: 40,
+        C: 20,
+        R: 50,
+        refPhi: 0,
+        activePhi: 0,
+        angleIncrement: 0.5 * Math.PI / 180,
+        maxNormalArrowLength: 1.35,
+        stressScale: 1,
+        arrowScale: 1.0,
+        anchorOffset: 0.22,
+        shearOffset: 0.24,
+        squareHalfSize: 2.05,
+        tol: 1e-6,
+        dragMarker: null,
+        markerRadiusPx: 10,
+        mohrBounds: { xMin: -1, xMax: 1, yMin: -1, yMax: 1 },
+      };
+
+      const COLORS = {
+        red: '#c62828',
+        green: '#1b8a3d',
+        blue: '#2563eb',
+        orange: '#d97706',
+        purple: '#7c3aed',
+        axis: '#9aa0a6',
+        gray: '#c9ccd3',
+        refSquare: '#f0f0f0',
+        refRed: 'rgb(255, 242, 242)',
+        refGreen: 'rgb(230, 255, 230)',
+        dark: '#111827',
+        text: '#1f2937',
+        grid: '#ececf0',
+        muted: '#6b7280',
+      };
+
+      function getLogicalWidth(canvas) {
+        return Number(canvas.dataset.logicalWidth) || canvas.clientWidth || canvas.width;
+      }
+
+      function getLogicalHeight(canvas) {
+        return Number(canvas.dataset.logicalHeight) || canvas.clientHeight || canvas.height;
+      }
+
+      function isTabletLandscapeFitMode() {
+        return window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape) and (min-width: 900px)').matches;
+      }
+
+      function getViewportHeight() {
+        if (window.visualViewport && Number.isFinite(window.visualViewport.height)) {
+          return Math.max(1, Math.round(window.visualViewport.height));
+        }
+        return Math.max(1, window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight || 1);
+      }
+
+      function getOuterHeight(el) {
+        if (!el) return 0;
+        const rect = el.getBoundingClientRect();
+        const styles = window.getComputedStyle(el);
+        return rect.height + parseFloat(styles.marginTop || '0') + parseFloat(styles.marginBottom || '0');
+      }
+
+      function getVerticalPadding(el) {
+        if (!el) return 0;
+        const styles = window.getComputedStyle(el);
+        return parseFloat(styles.paddingTop || '0') + parseFloat(styles.paddingBottom || '0');
+      }
+
+      function applyTabletLandscapeCanvasLayout() {
+        mohrCanvas.style.width = '';
+        mohrCanvas.style.height = '';
+        elementCanvas.style.width = '';
+        elementCanvas.style.height = '';
+
+        if (!isTabletLandscapeFitMode()) {
+          gridEl.style.height = '';
+          return;
+        }
+
+        const viewportHeight = getViewportHeight();
+        const wrapStyles = window.getComputedStyle(wrapEl);
+        const wrapGap = parseFloat(wrapStyles.rowGap || wrapStyles.gap || '0') || 0;
+        const wrapVerticalPadding = getVerticalPadding(wrapEl);
+
+        const fixedSelectors = ['h1', '.controls', '.info-grid', '.instructions-box', '.copyright'];
+        const fixedHeight = fixedSelectors
+          .map(selector => getOuterHeight(wrapEl.querySelector(selector)))
+          .reduce((sum, value) => sum + value, 0);
+
+        const gridHeight = Math.max(180, viewportHeight - wrapVerticalPadding - fixedHeight - (wrapGap * 5));
+        gridEl.style.height = `${Math.round(gridHeight)}px`;
+
+        const mohrTitle = getOuterHeight(mohrPanel.querySelector('h2'));
+        const mohrLegend = getOuterHeight(mohrPanel.querySelector('.legend'));
+        const elementTitle = getOuterHeight(elementPanel.querySelector('h2'));
+        const panelPadding = Math.max(getVerticalPadding(mohrPanel), getVerticalPadding(elementPanel));
+        const commonCanvasHeight = Math.max(
+          120,
+          Math.floor(Math.min(
+            gridHeight - panelPadding - mohrTitle - mohrLegend - 6,
+            gridHeight - panelPadding - elementTitle - 6,
+          )),
+        );
+
+        const panelGap = parseFloat(window.getComputedStyle(gridEl).columnGap || '0') || 0;
+        const panelRect = mohrPanel.getBoundingClientRect();
+        const availablePanelWidth = Math.max(180, panelRect.width);
+        const aspect = 900 / 540;
+        const widthFromHeight = commonCanvasHeight * aspect;
+        const finalCanvasWidth = Math.floor(Math.min(availablePanelWidth - 2, widthFromHeight));
+        const finalCanvasHeight = Math.floor(finalCanvasWidth / aspect);
+
+        [mohrCanvas, elementCanvas].forEach(canvas => {
+          canvas.style.width = `${finalCanvasWidth}px`;
+          canvas.style.height = `${finalCanvasHeight}px`;
+          canvas.style.maxWidth = '100%';
+        });
+      }
+
+      function configureHiDPICanvas(canvas, ctx) {
+        const rect = canvas.getBoundingClientRect();
+        const logicalWidth = Math.max(1, Math.round(rect.width || canvas.width || 1));
+        const logicalHeight = Math.max(1, Math.round(rect.height || canvas.height || 1));
+        const ratio = Math.max(1, Math.min((window.devicePixelRatio || 1) * 2, 4));
+        const pixelWidth = Math.max(1, Math.round(logicalWidth * ratio));
+        const pixelHeight = Math.max(1, Math.round(logicalHeight * ratio));
+
+        if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+          canvas.width = pixelWidth;
+          canvas.height = pixelHeight;
+        }
+
+        canvas.dataset.logicalWidth = String(logicalWidth);
+        canvas.dataset.logicalHeight = String(logicalHeight);
+        canvas.dataset.pixelRatio = String(ratio);
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+      }
+
+      function resizeAllCanvases() {
+        applyTabletLandscapeCanvasLayout();
+        configureHiDPICanvas(mohrCanvas, mohrCtx);
+        configureHiDPICanvas(elementCanvas, elemCtx);
+      }
+
+
+      function stressMagnitudeScale(sigma_xx, sigma_yy, tau_xy, eps = 1e-12) {
+        const C = (sigma_xx + sigma_yy) / 2;
+        const R = Math.sqrt(((sigma_xx - sigma_yy) / 2) ** 2 + tau_xy ** 2);
+        const scale = Math.max(
+          Math.abs(sigma_xx),
+          Math.abs(sigma_yy),
+          Math.abs(tau_xy),
+          Math.abs(C + R),
+          Math.abs(C - R),
+        );
+        return scale < eps ? 0 : scale;
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function updateElementSquareCalibration() {
+        const sigma1Abs = Math.abs(state.C + state.R);
+        const sigma2Abs = Math.abs(state.C - state.R);
+        const tauMaxAbs = Math.abs(state.R);
+        const normalLenMax = state.arrowScale * Math.max(sigma1Abs, sigma2Abs);
+        const shearLenMax = state.arrowScale * tauMaxAbs;
+
+        const calibratedHalf = 1.3 + 0.65 * normalLenMax + 0.28 * shearLenMax;
+        state.squareHalfSize = clamp(calibratedHalf, 1.5, 2.45);
+      }
+
+      function rot90(v) {
+        return { x: -v.y, y: v.x };
+      }
+
+      function add(a, b) { return { x: a.x + b.x, y: a.y + b.y }; }
+      function sub(a, b) { return { x: a.x - b.x, y: a.y - b.y }; }
+      function mul(v, s) { return { x: v.x * s, y: v.y * s }; }
+      function norm(v) {
+        const m = Math.hypot(v.x, v.y);
+        return m < 1e-12 ? { x: 0, y: 0 } : { x: v.x / m, y: v.y / m };
+      }
+
+      function readNumberOrZero(input) {
+        const raw = input.value.trim();
+        if (raw === '') {
+          input.value = '0';
+          return 0;
+        }
+
+        const value = Number(raw);
+        if (!Number.isFinite(value)) {
+          input.value = '0';
+          return 0;
+        }
+
+        return value;
+      }
+
+      function updateStateFromInputs() {
+        state.sigma_xx_input = readNumberOrZero(sigmaXXInput);
+        state.sigma_yy_input = readNumberOrZero(sigmaYYInput);
+        state.tau_xy_input = readNumberOrZero(tauXYInput);
+
+        state.sigma_xx = state.sigma_xx_input;
+        state.sigma_yy = state.sigma_yy_input;
+        state.tau_xy = state.tau_xy_input;
+        state.C = (state.sigma_xx + state.sigma_yy) / 2;
+        state.R = Math.sqrt(((state.sigma_xx - state.sigma_yy) / 2) ** 2 + state.tau_xy ** 2);
+        state.stressScale = stressMagnitudeScale(state.sigma_xx, state.sigma_yy, state.tau_xy);
+        state.arrowScale = state.stressScale === 0 ? 0 : state.maxNormalArrowLength / state.stressScale;
+        updateElementSquareCalibration();
+        state.refPhi = Math.atan2(-state.tau_xy, state.sigma_xx - state.C);
+        state.activePhi = state.refPhi;
+        updateMohrBounds();
+      }
+
+      function updateMohrBounds() {
+        const margin = Math.max(0.25 * state.R, 1.0);
+        state.mohrBounds = {
+          xMin: state.C - state.R - margin,
+          xMax: state.C + state.R + margin,
+          yMin: -state.R - margin,
+          yMax: state.R + margin,
+        };
+      }
+
+      function getMohrTransform() {
+        const pad = 42;
+        const { xMin, xMax, yMin, yMax } = state.mohrBounds;
+        const canvasWidth = getLogicalWidth(mohrCanvas);
+        const canvasHeight = getLogicalHeight(mohrCanvas);
+        const usableW = canvasWidth - 2 * pad;
+        const usableH = canvasHeight - 2 * pad;
+        const scale = Math.min(usableW / (xMax - xMin || 1), usableH / (yMax - yMin || 1));
+        const worldW = (canvasWidth - 2 * pad) / scale;
+        const worldH = (canvasHeight - 2 * pad) / scale;
+        const x0 = (xMin + xMax) / 2 - worldW / 2;
+        const y0 = (yMin + yMax) / 2 - worldH / 2;
+        return {
+          pad, scale, x0, y0, worldW, worldH,
+          plot: {
+            left: pad,
+            right: canvasWidth - pad,
+            top: pad,
+            bottom: canvasHeight - pad,
+          },
+          toScreen(x, y) {
+            return {
+              x: pad + (x - x0) * scale,
+              y: canvasHeight - pad - (y - y0) * scale,
+            };
+          },
+          toWorld(sx, sy) {
+            return {
+              x: x0 + (sx - pad) / scale,
+              y: y0 + (canvasHeight - pad - sy) / scale,
+            };
+          }
+        };
+      }
+
+      function getElementTransform() {
+        const pad = 28;
+        const half = state.squareHalfSize;
+        const rotExtent = Math.SQRT2 * half + 0.22;
+        const arrowExtent = half + state.anchorOffset + state.maxNormalArrowLength + 0.26;
+        const extent = Math.max(rotExtent, arrowExtent, 2.7);
+        const xMin = -extent, xMax = extent, yMin = -extent, yMax = extent;
+        const canvasWidth = getLogicalWidth(elementCanvas);
+        const canvasHeight = getLogicalHeight(elementCanvas);
+        const usableW = canvasWidth - 2 * pad;
+        const usableH = canvasHeight - 2 * pad;
+        const scale = Math.min(usableW / (xMax - xMin), usableH / (yMax - yMin));
+        const worldW = usableW / scale;
+        const worldH = usableH / scale;
+        const x0 = (xMin + xMax) / 2 - worldW / 2;
+        const y0 = (yMin + yMax) / 2 - worldH / 2;
+        return {
+          scale,
+          toScreen(x, y) {
+            return {
+              x: pad + (x - x0) * scale,
+              y: canvasHeight - pad - (y - y0) * scale,
+            };
+          }
+        };
+      }
+
+      function clearCanvas(ctx, canvas) {
+        const ratio = Number(canvas.dataset.pixelRatio) || 1;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      }
+
+      function drawCross(ctx, x, y, size, color, lineWidth = 2) {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.beginPath();
+        ctx.moveTo(x - size, y - size);
+        ctx.lineTo(x + size, y + size);
+        ctx.moveTo(x - size, y + size);
+        ctx.lineTo(x + size, y - size);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawCircleMarker(ctx, x, y, r, fill, stroke = null, lineWidth = 2) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = fill;
+        ctx.fill();
+        if (stroke) {
+          ctx.lineWidth = lineWidth;
+          ctx.strokeStyle = stroke;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawArrowWorld(ctx, tr, from, to, color, width = 2) {
+        const p1 = tr.toScreen(from.x, from.y);
+        const p2 = tr.toScreen(to.x, to.y);
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.hypot(dx, dy);
+        if (len < 1e-6) return;
+
+        const ux = dx / len;
+        const uy = dy / len;
+        const headLen = Math.min(18, Math.max(11, len * 0.22));
+        const headW = Math.min(13, Math.max(8.5, len * 0.15));
+        const bx = p2.x - headLen * ux;
+        const by = p2.y - headLen * uy;
+        const px = -uy;
+        const py = ux;
+
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = width;
+        ctx.lineCap = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(p2.x, p2.y);
+        ctx.lineTo(bx + px * headW * 0.5, by + py * headW * 0.5);
+        ctx.lineTo(bx - px * headW * 0.5, by - py * headW * 0.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawNormalArrow(ctx, tr, midpoint, normal, sigma, anchorOffset, arrowScale, color, tol = 1e-6) {
+        if (Math.abs(sigma) < tol || arrowScale <= 0) return;
+        const headLength = 0.1;
+        const L = arrowScale * Math.abs(sigma);
+        let tail, tip;
+
+        if (sigma >= 0) {
+          tail = add(mul(midpoint, 1 + headLength), mul(normal, anchorOffset));
+          tip = add(tail, mul(normal, L));
+        } else {
+          tip = add(mul(midpoint, 1 + 2 * headLength), mul(normal, anchorOffset));
+          tail = add(tip, mul(normal, L));
+        }
+        drawArrowWorld(ctx, tr, tail, tip, color, 2.8);
+      }
+
+      function drawShearArrow(ctx, tr, anchor, baseTangent, tau, arrowScale, color) {
+        if (Math.abs(tau) < 1e-6 || arrowScale <= 0) return;
+        const sign = tau > 0 ? 1 : -1;
+        const L = arrowScale * Math.abs(tau);
+        const t = mul(norm(baseTangent), sign);
+        const tail = sub(anchor, mul(t, 0.5 * L));
+        const tip = add(tail, mul(t, L));
+        drawArrowWorld(ctx, tr, tail, tip, color, 2.8);
+      }
+
+      function drawSquare(ctx, tr, points, color, width = 2) {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        points.forEach((p, i) => {
+          const s = tr.toScreen(p.x, p.y);
+          if (i === 0) ctx.moveTo(s.x, s.y); else ctx.lineTo(s.x, s.y);
+        });
+        const first = tr.toScreen(points[0].x, points[0].y);
+        ctx.lineTo(first.x, first.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawLabel(ctx, text, x, y, color = COLORS.text, align = 'left', font = '15px system-ui', baseline = 'alphabetic') {
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.font = font;
+        ctx.textAlign = align;
+        ctx.textBaseline = baseline;
+        ctx.fillText(text, x, y);
+        ctx.restore();
+      }
+
+      function drawAxisArrowHead(ctx, tip, direction, color = COLORS.axis) {
+        const len = 10;
+        const width = 7;
+        const u = norm(direction);
+        if (Math.hypot(u.x, u.y) < 1e-12) return;
+        const p = { x: -u.y, y: u.x };
+        const base = { x: tip.x - len * u.x, y: tip.y - len * u.y };
+
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(tip.x, tip.y);
+        ctx.lineTo(base.x + 0.5 * width * p.x, base.y + 0.5 * width * p.y);
+        ctx.lineTo(base.x - 0.5 * width * p.x, base.y - 0.5 * width * p.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function wrapToPi(angle) {
+        return Math.atan2(Math.sin(angle), Math.cos(angle));
+      }
+
+      function computeRotatedStresses() {
+        const theta = 0.5 * wrapToPi(state.activePhi - state.refPhi);
+        const phi = state.refPhi + 2 * theta;
+        return {
+          theta,
+          sigma_x_rot: state.C + state.R * Math.cos(phi),
+          sigma_y_rot: state.C - state.R * Math.cos(phi),
+          tau_rot: -state.R * Math.sin(phi),
+        };
+      }
+
+      function drawMohrPlane() {
+        clearCanvas(mohrCtx, mohrCanvas);
+        const tr = getMohrTransform();
+        const { xMin, xMax, yMin, yMax } = state.mohrBounds;
+        let xAxisEnd = null;
+        let yAxisTop = null;
+
+        mohrCtx.save();
+        mohrCtx.strokeStyle = COLORS.axis;
+        mohrCtx.lineWidth = 1.1;
+        if (yMin <= 0 && yMax >= 0) {
+          const a = tr.toScreen(xMin, 0);
+          const b = tr.toScreen(xMax, 0);
+          xAxisEnd = b;
+          mohrCtx.beginPath();
+          mohrCtx.moveTo(a.x, a.y);
+          mohrCtx.lineTo(b.x, b.y);
+          mohrCtx.stroke();
+        }
+        if (xMin <= 0 && xMax >= 0) {
+          const a = tr.toScreen(0, yMin);
+          const b = tr.toScreen(0, yMax);
+          yAxisTop = b;
+          mohrCtx.beginPath();
+          mohrCtx.moveTo(a.x, a.y);
+          mohrCtx.lineTo(b.x, b.y);
+          mohrCtx.stroke();
+        }
+        mohrCtx.restore();
+
+        const c = tr.toScreen(state.C, 0);
+        mohrCtx.save();
+        mohrCtx.strokeStyle = COLORS.blue;
+        mohrCtx.lineWidth = 2.6;
+        mohrCtx.beginPath();
+        mohrCtx.arc(c.x, c.y, state.R * tr.scale, 0, Math.PI * 2);
+        mohrCtx.stroke();
+        mohrCtx.restore();
+
+        drawCross(mohrCtx, tr.toScreen(state.C + state.R, 0).x, tr.toScreen(state.C + state.R, 0).y, 7, COLORS.purple, 2.3);
+        drawCross(mohrCtx, tr.toScreen(state.C - state.R, 0).x, tr.toScreen(state.C - state.R, 0).y, 7, COLORS.purple, 2.3);
+        drawCross(mohrCtx, tr.toScreen(state.C, state.R).x, tr.toScreen(state.C, state.R).y, 7, COLORS.orange, 2.3);
+        drawCross(mohrCtx, tr.toScreen(state.C, -state.R).x, tr.toScreen(state.C, -state.R).y, 7, COLORS.orange, 2.3);
+
+        const refRed = { x: state.C + state.R * Math.cos(state.refPhi), y: state.R * Math.sin(state.refPhi) };
+        const refGreen = { x: state.C - state.R * Math.cos(state.refPhi), y: -state.R * Math.sin(state.refPhi) };
+        const activeRed = { x: state.C + state.R * Math.cos(state.activePhi), y: state.R * Math.sin(state.activePhi) };
+        const activeGreen = { x: state.C - state.R * Math.cos(state.activePhi), y: -state.R * Math.sin(state.activePhi) };
+
+        const refRedS = tr.toScreen(refRed.x, refRed.y);
+        const refGreenS = tr.toScreen(refGreen.x, refGreen.y);
+        const activeRedS = tr.toScreen(activeRed.x, activeRed.y);
+        const activeGreenS = tr.toScreen(activeGreen.x, activeGreen.y);
+
+        state.markerRadiusPx = Math.max(8, Math.min(13, 0.05 * state.R * tr.scale));
+
+        drawCircleMarker(mohrCtx, refRedS.x, refRedS.y, state.markerRadiusPx + 2, '#fff2f2', COLORS.red, 2.2);
+        drawCircleMarker(mohrCtx, refGreenS.x, refGreenS.y, state.markerRadiusPx + 2, '#f1fbf3', COLORS.green, 2.2);
+        drawCircleMarker(mohrCtx, activeRedS.x, activeRedS.y, state.markerRadiusPx, COLORS.red);
+        drawCircleMarker(mohrCtx, activeGreenS.x, activeGreenS.y, state.markerRadiusPx, COLORS.green);
+
+        if (xAxisEnd) {
+          drawAxisArrowHead(mohrCtx, xAxisEnd, { x: 1, y: 0 });
+        }
+        if (yAxisTop) {
+          drawAxisArrowHead(mohrCtx, yAxisTop, { x: 0, y: -1 });
+        }
+
+        const axisLabelOffset = 12;
+        const sigmaAnchor = xAxisEnd || tr.toScreen(xMax, 0);
+        const tauAnchor = yAxisTop || tr.toScreen(0, yMax);
+        const sigmaLabelX = sigmaAnchor.x + axisLabelOffset;
+        const sigmaLabelY = sigmaAnchor.y;
+        const tauLabelX = tauAnchor.x;
+        const tauLabelY = tauAnchor.y - axisLabelOffset;
+        drawLabel(mohrCtx, 'σₙ', sigmaLabelX, sigmaLabelY, COLORS.text, 'left', '16px system-ui', 'middle');
+        drawLabel(mohrCtx, 'τₙ', tauLabelX, tauLabelY, COLORS.text, 'center', '16px system-ui', 'bottom');
+      }
+
+      function drawElementPlane() {
+        clearCanvas(elemCtx, elementCanvas);
+        const tr = getElementTransform();
+        const { theta, sigma_x_rot, sigma_y_rot, tau_rot } = computeRotatedStresses();
+        const half = state.squareHalfSize;
+
+        const refSquare = [
+          { x: -half, y: -half },
+          { x: half, y: -half },
+          { x: half, y: half },
+          { x: -half, y: half },
+        ];
+        drawSquare(elemCtx, tr, refSquare, COLORS.refSquare, 2);
+
+        const mRight = { x: half, y: 0 };
+        const mLeft = { x: -half, y: 0 };
+        const mTop = { x: 0, y: half };
+        const mBottom = { x: 0, y: -half };
+
+        drawNormalArrow(elemCtx, tr, mRight, { x: 1, y: 0 }, state.sigma_xx, state.anchorOffset, state.arrowScale, COLORS.refRed);
+        drawNormalArrow(elemCtx, tr, mLeft, { x: -1, y: 0 }, state.sigma_xx, state.anchorOffset, state.arrowScale, COLORS.refRed);
+        drawNormalArrow(elemCtx, tr, mTop, { x: 0, y: 1 }, state.sigma_yy, state.anchorOffset, state.arrowScale, COLORS.refGreen);
+        drawNormalArrow(elemCtx, tr, mBottom, { x: 0, y: -1 }, state.sigma_yy, state.anchorOffset, state.arrowScale, COLORS.refGreen);
+
+        if (Math.abs(state.tau_xy) > state.tol) {
+          drawShearArrow(elemCtx, tr, add(mRight, { x: state.shearOffset, y: 0 }), { x: 0, y: 1 }, state.tau_xy, state.arrowScale, COLORS.refRed);
+          drawShearArrow(elemCtx, tr, add(mLeft, { x: -state.shearOffset, y: 0 }), { x: 0, y: -1 }, state.tau_xy, state.arrowScale, COLORS.refRed);
+          drawShearArrow(elemCtx, tr, add(mTop, { x: 0, y: state.shearOffset }), { x: 1, y: 0 }, state.tau_xy, state.arrowScale, COLORS.refGreen);
+          drawShearArrow(elemCtx, tr, add(mBottom, { x: 0, y: -state.shearOffset }), { x: -1, y: 0 }, state.tau_xy, state.arrowScale, COLORS.refGreen);
+        }
+
+        const c = Math.cos(theta);
+        const s = Math.sin(theta);
+        const Rmat = (p) => ({ x: c * p.x - s * p.y, y: s * p.x + c * p.y });
+        const rotatedSquare = refSquare.map(Rmat);
+        drawSquare(elemCtx, tr, rotatedSquare, COLORS.dark, 2.6);
+
+        const nRedRot = mul(Rmat({ x: 1, y: 0 }), half);
+        const nGreenRot = mul(Rmat({ x: 0, y: 1 }), half);
+
+        drawNormalArrow(elemCtx, tr, nRedRot, norm(nRedRot), sigma_x_rot, state.anchorOffset, state.arrowScale, COLORS.red);
+        drawNormalArrow(elemCtx, tr, mul(nRedRot, -1), norm(mul(nRedRot, -1)), sigma_x_rot, state.anchorOffset, state.arrowScale, COLORS.red);
+        drawNormalArrow(elemCtx, tr, nGreenRot, norm(nGreenRot), sigma_y_rot, state.anchorOffset, state.arrowScale, COLORS.green);
+        drawNormalArrow(elemCtx, tr, mul(nGreenRot, -1), norm(mul(nGreenRot, -1)), sigma_y_rot, state.anchorOffset, state.arrowScale, COLORS.green);
+
+        if (Math.abs(tau_rot) > state.tol) {
+          drawShearArrow(elemCtx, tr, add(nRedRot, mul(norm(nRedRot), state.shearOffset)), rot90(norm(nRedRot)), tau_rot, state.arrowScale, COLORS.red);
+          drawShearArrow(elemCtx, tr, sub(mul(nRedRot, -1), mul(norm(nRedRot), state.shearOffset)), mul(rot90(norm(nRedRot)), -1), tau_rot, state.arrowScale, COLORS.red);
+          drawShearArrow(elemCtx, tr, add(nGreenRot, mul(norm(nGreenRot), state.shearOffset)), mul(rot90(norm(nGreenRot)), -1), tau_rot, state.arrowScale, COLORS.green);
+          drawShearArrow(elemCtx, tr, sub(mul(nGreenRot, -1), mul(norm(nGreenRot), state.shearOffset)), rot90(norm(nGreenRot)), tau_rot, state.arrowScale, COLORS.green);
+        }
+      }
+
+      function formatAngleDMS(angleRad) {
+        const totalSecondsRounded = Math.round(Math.abs(angleRad) * 180 / Math.PI * 3600);
+        let degrees = Math.floor(totalSecondsRounded / 3600);
+        let remainder = totalSecondsRounded % 3600;
+        let minutes = Math.floor(remainder / 60);
+        let seconds = remainder % 60;
+
+        if (seconds === 60) {
+          seconds = 0;
+          minutes += 1;
+        }
+        if (minutes === 60) {
+          minutes = 0;
+          degrees += 1;
+        }
+
+        const sign = angleRad < 0 ? '−' : '';
+        return `${sign}${degrees}° ${String(minutes).padStart(2, '0')}′ ${String(seconds).padStart(2, '0')}″`;
+      }
+
+      function updateInfoPanel() {
+        const { theta, sigma_x_rot, sigma_y_rot, tau_rot } = computeRotatedStresses();
+        const sigma1 = state.C + state.R;
+        const sigma2 = state.C - state.R;
+        document.getElementById('m11').textContent = sigma_x_rot.toFixed(2);
+        document.getElementById('m12').textContent = tau_rot.toFixed(2);
+        document.getElementById('m21').textContent = tau_rot.toFixed(2);
+        document.getElementById('m22').textContent = sigma_y_rot.toFixed(2);
+        document.getElementById('sigma1').textContent = sigma1.toFixed(2);
+        document.getElementById('sigma2').textContent = sigma2.toFixed(2);
+        document.getElementById('thetaDeg').textContent = formatAngleDMS(theta);
+        document.getElementById('tauRot').textContent = tau_rot.toFixed(2);
+      }
+
+      function redrawAll() {
+        resizeAllCanvases();
+        drawMohrPlane();
+        drawElementPlane();
+        updateInfoPanel();
+      }
+
+      let redrawScheduled = false;
+
+      function scheduleRedraw() {
+        if (redrawScheduled) return;
+        redrawScheduled = true;
+        window.requestAnimationFrame(() => {
+          redrawScheduled = false;
+          redrawAll();
+        });
+      }
+
+      function resetOrientation() {
+        state.sigma_xx = state.sigma_xx_input;
+        state.sigma_yy = state.sigma_yy_input;
+        state.tau_xy = state.tau_xy_input;
+        state.C = (state.sigma_xx + state.sigma_yy) / 2;
+        state.R = Math.sqrt(((state.sigma_xx - state.sigma_yy) / 2) ** 2 + state.tau_xy ** 2);
+        state.stressScale = stressMagnitudeScale(state.sigma_xx, state.sigma_yy, state.tau_xy);
+        state.arrowScale = state.stressScale === 0 ? 0 : state.maxNormalArrowLength / state.stressScale;
+        updateElementSquareCalibration();
+        state.refPhi = Math.atan2(-state.tau_xy, state.sigma_xx - state.C);
+        state.activePhi = state.refPhi;
+        updateMohrBounds();
+        redrawAll();
+      }
+
+      function applyValues() {
+        updateStateFromInputs();
+        redrawAll();
+      }
+
+      function setDefaults() {
+        sigmaXXInput.value = '50';
+        sigmaYYInput.value = '-10';
+        tauXYInput.value = '40';
+        applyValues();
+      }
+
+      function angDiff(a, b) {
+        const d = Math.abs(a - b) % (2 * Math.PI);
+        return Math.min(d, 2 * Math.PI - d);
+      }
+
+      function updateDragFromEvent(evt) {
+        if (!state.dragMarker) return;
+        const rect = mohrCanvas.getBoundingClientRect();
+        const sx = evt.clientX - rect.left;
+        const sy = evt.clientY - rect.top;
+        const tr = getMohrTransform();
+        const p = tr.toWorld(sx, sy);
+        let newPhi = Math.atan2(p.y, p.x - state.C);
+        newPhi = Math.round(newPhi / state.angleIncrement) * state.angleIncrement;
+
+        if (state.dragMarker === 'green') {
+          newPhi = (newPhi - Math.PI) % (2 * Math.PI);
+          if (newPhi < 0) newPhi += 2 * Math.PI;
+        }
+
+        const baseAngles = [
+          0,
+          0.5 * Math.PI,
+          Math.PI,
+          1.5 * Math.PI,
+          ((state.refPhi % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI),
+          (((state.refPhi + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI),
+        ];
+
+        const uniqueBaseAngles = [];
+        for (const candidate of baseAngles) {
+          if (!uniqueBaseAngles.some(existing => Math.abs((((candidate - existing) + Math.PI) % (2 * Math.PI)) - Math.PI) < 1e-9)) {
+            uniqueBaseAngles.push(candidate);
+          }
+        }
+
+        const snapAngles = state.dragMarker === 'green'
+          ? uniqueBaseAngles.map(a => (a + Math.PI) % (2 * Math.PI))
+          : uniqueBaseAngles;
+
+        const snapTol = 2 * Math.PI / 180;
+        let closestAngle = null;
+        let closest = Infinity;
+        for (const candidate of snapAngles) {
+          const d = angDiff(newPhi, candidate);
+          if (d < closest) {
+            closest = d;
+            closestAngle = candidate;
+          }
+        }
+        if (closest < snapTol) newPhi = closestAngle;
+
+        state.activePhi = newPhi;
+        redrawAll();
+      }
+
+      mohrCanvas.addEventListener('pointerdown', (evt) => {
+        const rect = mohrCanvas.getBoundingClientRect();
+        const sx = evt.clientX - rect.left;
+        const sy = evt.clientY - rect.top;
+        const tr = getMohrTransform();
+
+        const activeRed = tr.toScreen(state.C + state.R * Math.cos(state.activePhi), state.R * Math.sin(state.activePhi));
+        const activeGreen = tr.toScreen(state.C - state.R * Math.cos(state.activePhi), -state.R * Math.sin(state.activePhi));
+        const dRed = Math.hypot(sx - activeRed.x, sy - activeRed.y);
+        const dGreen = Math.hypot(sx - activeGreen.x, sy - activeGreen.y);
+        const tol = Math.max(state.markerRadiusPx + 6, 16);
+
+        if (dRed < tol) {
+          state.dragMarker = 'red';
+          mohrCanvas.setPointerCapture(evt.pointerId);
+        } else if (dGreen < tol) {
+          state.dragMarker = 'green';
+          mohrCanvas.setPointerCapture(evt.pointerId);
+        }
+      });
+
+      mohrCanvas.addEventListener('pointermove', updateDragFromEvent);
+      mohrCanvas.addEventListener('pointerup', () => { state.dragMarker = null; });
+      mohrCanvas.addEventListener('pointercancel', () => { state.dragMarker = null; });
+
+      document.getElementById('applyBtn').addEventListener('click', applyValues);
+      document.getElementById('resetBtn').addEventListener('click', resetOrientation);
+      document.getElementById('defaultsBtn').addEventListener('click', setDefaults);
+
+      [sigmaXXInput, sigmaYYInput, tauXYInput].forEach(input => {
+        input.addEventListener('keydown', (evt) => {
+          if (evt.key === 'Enter') applyValues();
+        });
+      });
+
+      window.addEventListener('keydown', (evt) => {
+        if ((evt.key || '').toLowerCase() === 'r') {
+          resetOrientation();
+        }
+      });
+
+      window.addEventListener('resize', scheduleRedraw);
+      window.addEventListener('orientationchange', scheduleRedraw);
+
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', scheduleRedraw);
+      }
+
+      if (window.ResizeObserver) {
+        const resizeObserver = new ResizeObserver(() => scheduleRedraw());
+        resizeObserver.observe(document.body);
+        resizeObserver.observe(mohrCanvas);
+        resizeObserver.observe(elementCanvas);
+      }
+
+      updateStateFromInputs();
+      redrawAll();
+      window.setTimeout(scheduleRedraw, 80);
+      window.setTimeout(scheduleRedraw, 300);
+    })();
+
+  </script>
+
+</body>
+
+</html>
