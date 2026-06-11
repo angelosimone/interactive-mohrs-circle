@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Grafico interattivo della circonferenza di Mohr</title>
-  <meta name="description" content="Educational interactive web app for visualizing Mohr's circle and plane stress transformations.">
+  <title>Interactive Mohr's Circle</title>
+  <meta name="description"
+    content="Educational interactive web app for visualizing Mohr's circle and plane stress transformations.">
   <meta name="author" content="Angelo Simone">
   <meta name="license" content="MIT">
   <style>
@@ -67,6 +68,35 @@
       line-height: 1;
       font-weight: 700;
       color: #374151;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .language-field {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      justify-self: end;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #374151;
+      white-space: nowrap;
+    }
+
+    .language-field select {
+      min-height: 30px;
+      padding: 4px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
     }
 
     .intro,
@@ -554,37 +584,54 @@
         min-width: 44px;
         padding: 3px 5px;
       }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .language-field {
+        justify-self: start;
+      }
     }
   </style>
 </head>
 
 <body>
   <div class="wrap">
-    <h1>Grafico interattivo della circonferenza di Mohr</h1>
+    <div class="topbar">
+      <h1 data-i18n="title">Interactive Mohr's Circle</h1>
+      <label class="language-field" for="languageSelect">
+        <span data-i18n="languageLabel">Language</span>
+        <select id="languageSelect" aria-label="Select language">
+          <option value="en" selected>English</option>
+          <option value="it">Italiano</option>
+        </select>
+      </label>
+    </div>
 
     <div class="controls">
       <div class="field">
         <label for="sigma_xx">σ<sub>xx</sub></label>
-        <input id="sigma_xx" type="number" step="any" value="50">
+        <input id="sigma_xx" type="number" step="any" value="-20">
       </div>
       <div class="field">
         <label for="sigma_yy">σ<sub>yy</sub></label>
-        <input id="sigma_yy" type="number" step="any" value="-10">
+        <input id="sigma_yy" type="number" step="any" value="60">
       </div>
       <div class="field">
         <label for="tau_xy">τ<sub>xy</sub></label>
-        <input id="tau_xy" type="number" step="any" value="40">
+        <input id="tau_xy" type="number" step="any" value="30">
       </div>
-      <button class="primary" id="applyBtn">Applica</button>
-      <button class="secondary" id="resetBtn">Reset</button>
-      <button class="secondary" id="defaultsBtn">Default</button>
+      <button class="primary" id="applyBtn" data-i18n="apply">Apply</button>
+      <button class="secondary" id="resetBtn" data-i18n="reset">Reset</button>
+      <button class="secondary" id="defaultsBtn" data-i18n="defaults">Default</button>
     </div>
 
     <div class="grid">
       <section class="panel">
-        <h2>Circonferenza di Mohr</h2>
+        <h2 data-i18n="mohrPanelTitle">Mohr's Circle</h2>
         <canvas id="mohrCanvas" width="900" height="540" role="img"
-          aria-label="Grafico della circonferenza di Mohr nel piano sigma_n tau_n, con convenzione 3: tau_n positiva verso l'alto e positiva se il taglio induce rotazione oraria dell'elemento."></canvas>
+          aria-label="Mohr circle in the sigma_n tau_n plane, using sign convention 3: tau_n is positive upward and positive when shear induces clockwise rotation of the material element."></canvas>
         <div class="legend">
           <span class="legend-item"><span class="dot" style="background: var(--red);"></span><span
               class="legend-text"><span class="tensor-symbol">t</span><sub>x</sub></span></span>
@@ -598,15 +645,15 @@
       </section>
 
       <section class="panel">
-        <h2>Piano fisico</h2>
+        <h2 data-i18n="physicalPlaneTitle">Physical plane</h2>
         <canvas id="elementCanvas" width="900" height="540" role="img"
-          aria-label="Rappresentazione sul piano fisico dello stato tensionale corrente e dell'elemento ruotato."></canvas>
+          aria-label="Physical-plane representation of the current stress state and the rotated element."></canvas>
       </section>
     </div>
 
     <div class="info-grid">
       <section class="info-card">
-        <h3>Tensore ruotato</h3>
+        <h3 data-i18n="rotatedTensorTitle">Rotated tensor</h3>
         <div class="matrix-wrap">
           <div class="label-block">T<sub>rot</sub> =</div>
           <div class="bracket">[</div>
@@ -625,7 +672,7 @@
       </section>
 
       <section class="info-card">
-        <h3>Valori principali</h3>
+        <h3 data-i18n="principalValuesTitle">Principal values</h3>
         <div class="metrics">
           <div class="metric">
             <div class="name">σ<sub>1</sub></div>
@@ -636,7 +683,7 @@
             <div class="value" id="sigma2">0.00</div>
           </div>
           <div class="metric">
-            <div class="name">θ fisico</div>
+            <div class="name" data-i18n="physicalTheta">Physical θ</div>
             <div class="value" id="thetaDeg">0° 00′ 00″</div>
           </div>
           <div class="metric">
@@ -647,22 +694,22 @@
       </section>
     </div>
 
-    <section class="instructions-box" aria-label="Istruzioni originali">
-      <h3>Istruzioni</h3>
+    <section class="instructions-box" id="instructionsBox" aria-label="Instructions">
+      <h3 data-i18n="instructionsTitle">Instructions</h3>
       <ul>
-        <li>Per iniziare premi <code>r</code> o il tasto <code>Reset</code>.</li>
-        <li>Trascina il marcatore rosso o verde per modificare lo stato di sforzo.</li>
-        <li>La rotazione fisica θ mostra la rotazione minima rispetto alla
-          configurazione di riferimento.</li>
-        <li>Convenzione usata nel piano di Mohr (piano σ<sub>n</sub>-τ<sub>n</sub>): la tensione normale positiva
-          corrisponde a una tensione normale di trazione; la tensione tangenziale positiva corrisponde a una rotazione
-          oraria dell'elemento.</li>
-        <li>Premi <code>r</code> o il tasto <code>Reset</code> per tornare alla configurazione di riferimento (non
-          ruotata).</li>
+        <li data-i18n-html="instructionStart">Press <code>r</code> or the <code>Reset</code> button to start.</li>
+        <li data-i18n-html="instructionDrag">Drag the red or green marker to rotate the stress state.</li>
+        <li data-i18n-html="instructionRotation">The physical rotation θ shows the minimum rotation from the reference
+          configuration.</li>
+        <li data-i18n-html="instructionConvention">Sign convention used in the Mohr plane (σ<sub>n</sub>-τ<sub>n</sub>
+          plane): positive normal stress corresponds to tensile normal stress; positive shear stress corresponds to
+          clockwise rotation of the material element.</li>
+        <li data-i18n-html="instructionReset">Press <code>r</code> or the <code>Reset</code> button to return to the
+          reference (unrotated) configuration.</li>
       </ul>
     </section>
 
-    <div class="copyright">© 2026 Angelo Simone. Licensed under the MIT License.</div>
+    <div class="copyright" data-i18n="copyright">© 2026 Angelo Simone. Licensed under the MIT License.</div>
   </div>
 
   <script>
@@ -680,13 +727,102 @@
       const sigmaYYInput = document.getElementById('sigma_yy');
       const tauXYInput = document.getElementById('tau_xy');
 
+      const languageSelect = document.getElementById('languageSelect');
+
+      const I18N = {
+        en: {
+          documentTitle: "Interactive Mohr's Circle",
+          metaDescription: "Educational interactive web app for visualizing Mohr's circle and plane stress transformations.",
+          title: "Interactive Mohr's Circle",
+          languageLabel: 'Language',
+          languageAria: 'Select language',
+          apply: 'Apply',
+          reset: 'Reset',
+          defaults: 'Default',
+          mohrPanelTitle: "Mohr's Circle",
+          physicalPlaneTitle: 'Physical plane',
+          rotatedTensorTitle: 'Matrix of the components of <strong>T</strong> in the rotated (<em>n</em>,<em>t</em>) basis',
+          principalValuesTitle: 'Principal values',
+          physicalTheta: 'Physical θ',
+          instructionsAria: 'Instructions',
+          instructionsTitle: 'Instructions',
+          instructionStart: 'Press <code>r</code> or the <code>Reset</code> button to start.',
+          instructionDrag: 'Drag the red or green marker to rotate the stress state.',
+          instructionRotation: 'The physical rotation θ shows the minimum rotation from the reference configuration.',
+          instructionConvention: 'Sign convention used in the Mohr plane (σ<sub>n</sub>-τ<sub>n</sub> plane): positive normal stress corresponds to tensile normal stress; positive shear stress corresponds to clockwise rotation of the material element.',
+          instructionReset: 'Press <code>r</code> or the <code>Reset</code> button to return to the reference (unrotated) configuration.',
+          mohrCanvasAria: 'Mohr circle in the sigma_n tau_n plane, using sign convention 3: tau_n is positive upward and positive when shear induces clockwise rotation of the material element.',
+          elementCanvasAria: 'Physical-plane representation of the current stress state and the rotated element.',
+          copyright: '© 2026 Angelo Simone. Licensed under the MIT License.',
+        },
+        it: {
+          documentTitle: 'Grafico interattivo della circonferenza di Mohr',
+          metaDescription: 'Applicazione web interattiva per visualizzare la circonferenza di Mohr e le trasformazioni dello stato tensionale piano.',
+          title: 'Grafico interattivo della circonferenza di Mohr',
+          languageLabel: 'Lingua',
+          languageAria: 'Seleziona lingua',
+          apply: 'Applica',
+          reset: 'Reset',
+          defaults: 'Predefiniti',
+          mohrPanelTitle: 'Circonferenza di Mohr',
+          physicalPlaneTitle: 'Piano fisico',
+          rotatedTensorTitle: 'Matrice delle componenti di <strong>T</strong> nella base ruotata (<em>n</em>,<em>t</em>)',
+          principalValuesTitle: 'Valori principali',
+          physicalTheta: 'θ fisico',
+          instructionsAria: 'Istruzioni',
+          instructionsTitle: 'Istruzioni',
+          instructionStart: 'Per iniziare premi <code>r</code> o il tasto <code>Reset</code>.',
+          instructionDrag: 'Trascina il marcatore rosso o verde per modificare lo stato di sforzo.',
+          instructionRotation: 'La rotazione fisica θ mostra la rotazione minima rispetto alla configurazione di riferimento.',
+          instructionConvention: 'Convenzione usata nel piano di Mohr (piano σ<sub>n</sub>-τ<sub>n</sub>): la tensione normale positiva corrisponde a una tensione normale di trazione; la tensione tangenziale positiva corrisponde a una rotazione oraria dell\'elemento.',
+          instructionReset: 'Premi <code>r</code> o il tasto <code>Reset</code> per tornare alla configurazione di riferimento (non ruotata).',
+          mohrCanvasAria: "Grafico della circonferenza di Mohr nel piano sigma_n tau_n, con convenzione 3: tau_n positiva verso l'alto e positiva se il taglio induce rotazione oraria dell'elemento.",
+          elementCanvasAria: "Rappresentazione sul piano fisico dello stato tensionale corrente e dell'elemento ruotato.",
+          copyright: '© 2026 Angelo Simone. Distribuito con licenza MIT.',
+        },
+      };
+
+      function setLanguage(lang) {
+        const selectedLang = I18N[lang] ? lang : 'en';
+        const dictionary = I18N[selectedLang];
+        document.documentElement.lang = selectedLang;
+        document.title = dictionary.documentTitle;
+
+        const description = document.querySelector('meta[name="description"]');
+        if (description) description.setAttribute('content', dictionary.metaDescription);
+
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.dataset.i18n;
+          if (Object.prototype.hasOwnProperty.call(dictionary, key)) {
+            el.innerHTML = dictionary[key];
+          }
+        });
+
+        document.querySelectorAll('[data-i18n-html]').forEach(el => {
+          const key = el.dataset.i18nHtml;
+          if (Object.prototype.hasOwnProperty.call(dictionary, key)) {
+            el.innerHTML = dictionary[key];
+          }
+        });
+
+        const instructionsBox = document.getElementById('instructionsBox');
+        if (instructionsBox) instructionsBox.setAttribute('aria-label', dictionary.instructionsAria);
+        mohrCanvas.setAttribute('aria-label', dictionary.mohrCanvasAria);
+        elementCanvas.setAttribute('aria-label', dictionary.elementCanvasAria);
+
+        if (languageSelect) {
+          languageSelect.value = selectedLang;
+          languageSelect.setAttribute('aria-label', dictionary.languageAria);
+        }
+      }
+
       const state = {
-        sigma_xx_input: 50,
-        sigma_yy_input: -10,
-        tau_xy_input: 40,
-        sigma_xx: 50,
-        sigma_yy: -10,
-        tau_xy: 40,
+        sigma_xx_input: -20,
+        sigma_yy_input: 60,
+        tau_xy_input: 30,
+        sigma_xx: -20,
+        sigma_yy: 60,
+        tau_xy: 30,
         C: 20,
         R: 50,
         refPhi: 0,
@@ -1340,9 +1476,9 @@
       }
 
       function setDefaults() {
-        sigmaXXInput.value = '50';
-        sigmaYYInput.value = '-10';
-        tauXYInput.value = '40';
+        sigmaXXInput.value = '-20';
+        sigmaYYInput.value = '60';
+        tauXYInput.value = '30';
         applyValues();
       }
 
@@ -1427,6 +1563,10 @@
       mohrCanvas.addEventListener('pointerup', () => { state.dragMarker = null; });
       mohrCanvas.addEventListener('pointercancel', () => { state.dragMarker = null; });
 
+      if (languageSelect) {
+        languageSelect.addEventListener('change', (evt) => setLanguage(evt.target.value));
+      }
+
       document.getElementById('applyBtn').addEventListener('click', applyValues);
       document.getElementById('resetBtn').addEventListener('click', resetOrientation);
       document.getElementById('defaultsBtn').addEventListener('click', setDefaults);
@@ -1457,6 +1597,7 @@
         resizeObserver.observe(elementCanvas);
       }
 
+      setLanguage('en');
       updateStateFromInputs();
       redrawAll();
       window.setTimeout(scheduleRedraw, 80);
