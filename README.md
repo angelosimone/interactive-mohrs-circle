@@ -43,7 +43,7 @@ The file can also be downloaded and used offline.
 
 Copyright (c) 2026 Angelo Simone.
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
 ## Author
 
